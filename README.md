@@ -14,10 +14,8 @@ SuperUser decides, per target, whether it needs authority — and asks for it
 only when it does.
 
 ```text
-$EDITOR=nvim   yazi            ← one instance, both worlds
-
-~/src          → p, d, r, a behave normally. You'd never know we were here.
-/etc/nginx     → p, d, r, a   → SuperUser steps in, authenticates, done.
+~/src          → p, d, r, a     behave normally. You'd never know we were here.
+/etc/nginx     → p, d, r, a     → SuperUser steps in, authenticates, done.
 ```
 
 **Nothing changes in your muscle memory. Only the failures disappear.**
