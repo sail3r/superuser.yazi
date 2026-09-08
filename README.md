@@ -189,7 +189,7 @@ prepend_rules = [
 
 [opener]
 edit = [
-    { run = '$EDITOR "$@"', desc = "$EDITOR", block = true, for = "unix" },
+	{ run = "${EDITOR:-vi} %s", desc = "$EDITOR",      for = "unix", block = true }, 
 ]
 ```
 
