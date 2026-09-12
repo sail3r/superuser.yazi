@@ -100,7 +100,12 @@ local get_state = ya.sync(function(_, cmd)
 				yanked = yanked,
 			},
 		}
-	elseif cmd == "create" or cmd == "remove" then
+	elseif cmd == "create" then
+		-- `create` only needs the CWD: it prompts for a name and never reads a
+		-- hovered/selected entry. An empty directory has neither, and indexing
+		-- `nil.url` here is what made `superuser_create` always fail.
+		return { kind = cmd, value = { cwd = cwd } }
+	elseif cmd == "remove" then
 		local selected = {}
 
 		if #cx.active.selected ~= 0 then
@@ -108,7 +113,10 @@ local get_state = ya.sync(function(_, cmd)
 				table.insert(selected, tostring(file.url))
 			end
 		else
-			table.insert(selected, tostring(cx.active.current.hovered.url))
+			local hovered = cx.active.current.hovered
+			if hovered then
+				table.insert(selected, tostring(hovered.url))
+			end
 		end
 
 		return {
@@ -127,7 +135,10 @@ local get_state = ya.sync(function(_, cmd)
 				break
 			end
 		else
-			hovered = tostring(cx.active.current.hovered.url)
+			local h = cx.active.current.hovered
+			if h then
+				hovered = tostring(h.url)
+			end
 		end
 		return {
 			kind = cmd,
@@ -145,7 +156,10 @@ local get_state = ya.sync(function(_, cmd)
 				table.insert(selected, tostring(file.url))
 			end
 		else
-			table.insert(selected, tostring(cx.active.current.hovered.url))
+			local hovered = cx.active.current.hovered
+			if hovered then
+				table.insert(selected, tostring(hovered.url))
+			end
 		end
 
 		return {
