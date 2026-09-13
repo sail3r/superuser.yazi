@@ -7,18 +7,17 @@
 #     by quoting every expansion as "$var".
 #   * passes `--` before operands so a filename beginning with '-' is never
 #     read as an option.
-#   * uses only POSIX utilities. The only non-POSIX extra is the optional
-#     verbose flag (-v), GNU-coreutils only; the plugin omits it entirely on
-#     BSD/busybox (see README).
+#   * uses only POSIX utilities, so it runs identically on Linux, BSD, and
+#     busybox systems.
 #
 # Usage:
 #   shell.sh <op> [options] -- <path>...
 #
 # Ops:
-#   cp    [--force] [-v] -- SRC...    copy each SRC into CWD (unique-named)
-#   mv    [--force] [-v] -- SRC...    move each SRC into CWD (unique-named)
+#   cp    [--force] -- SRC...         copy each SRC into CWD (unique-named)
+#   mv    [--force] -- SRC...         move each SRC into CWD (unique-named)
 #   ln    [--relative]   -- SRC...    symlink each SRC into CWD
-#   hardlink [-v]        -- SRC...    hard-link each SRC into CWD
+#   hardlink             -- SRC...    hard-link each SRC into CWD
 #   rm    [--permanent]  -- PATH...   XDG-trash (default) or permanently remove
 #   create  -- NAME...   touch NAME in CWD (refuse if it already exists)
 #   mkdir   -- NAME...   mkdir -p NAME in CWD
@@ -67,11 +66,9 @@ die() {
 
 op_cp() {
     force=0
-    verb=
     while [ $# -gt 0 ]; do
         case $1 in
             --force) force=1 ;;
-            -v) verb=-v ;;
             --)
                 shift
                 break
@@ -89,17 +86,15 @@ op_cp() {
         else
             dest=$(legit_name "$(basename_of "$p")")
         fi
-        cp -R $verb -- "$p" "./$dest"
+        cp -R -- "$p" "./$dest"
     done
 }
 
 op_mv() {
     force=0
-    verb=
     while [ $# -gt 0 ]; do
         case $1 in
             --force) force=1 ;;
-            -v) verb=-v ;;
             --)
                 shift
                 break
@@ -117,7 +112,7 @@ op_mv() {
         else
             dest=$(legit_name "$(basename_of "$p")")
         fi
-        mv $verb -- "$p" "./$dest"
+        mv -- "$p" "./$dest"
     done
 }
 
@@ -162,10 +157,8 @@ op_ln() {
 }
 
 op_hardlink() {
-    verb=
     while [ $# -gt 0 ]; do
         case $1 in
-            -v) verb=-v ;;
             --)
                 shift
                 break
@@ -179,7 +172,7 @@ op_hardlink() {
     done
     for p in "$@"; do
         dest=$(legit_name "$(basename_of "$p")")
-        ln $verb -- "$p" "./$dest"
+        ln -- "$p" "./$dest"
     done
 }
 

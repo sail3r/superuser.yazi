@@ -234,10 +234,6 @@ local peek_escalator = ya.sync(function(state)
 	return state.escalator_tool
 end)
 
-local peek_verbose = ya.sync(function(state)
-	return state.verbose
-end)
-
 --- Resolve the active escalation tool. Falls back to the default when the
 --- store is empty or holds an unrecognised value.
 --- @return string
@@ -259,24 +255,6 @@ local function superuser_cmd()
 		cmd[i] = argv[i]
 	end
 	return cmd
-end
-
---- Resolve the user's verbose-output preference (set via setup()).
---- @return boolean
-local function is_verbose()
-	local ok = peek_verbose()
-	return ok == true
-end
-
---- The tool-appropriate optional verbose flag. `-v` is GNU-coreutils only;
---- the plugin returns "" on systems where it is unsupported (BSD/busybox) so
---- it can be passed as an argv element that the Command builder skips.
---- @return string
-local function verbose_flag()
-	if is_verbose() then
-		return "-v"
-	end
-	return ""
 end
 
 --- Command builder: escalate args via the chosen tool. All supported tools
@@ -475,10 +453,6 @@ local function superuser_paste(value)
 	if value.force then
 		table.insert(args, "--force")
 	end
-	local vf = verbose_flag()
-	if vf ~= "" then
-		table.insert(args, vf)
-	end
 	table.insert(args, "--")
 	extend_iter(args, list_map(value.yanked, ya.quote))
 
@@ -498,10 +472,6 @@ end
 
 local function superuser_hardlink(value)
 	local args = { "sh", ya.quote(FS_SCRIPT), "hardlink" }
-	local vf = verbose_flag()
-	if vf ~= "" then
-		table.insert(args, vf)
-	end
 	table.insert(args, "--")
 	extend_iter(args, list_map(value.yanked, ya.quote))
 
@@ -509,11 +479,11 @@ local function superuser_hardlink(value)
 end
 
 --- Creation is routed through the POSIX payload running as root, so the
---- guard "target must not already exist" (shell.sh op_create) is checked under
---- the same root process that performs the touch/mkdir — never by the
---- plugin against a directory that may have changed between the yazi
---- snapshot and execution.
-local function superuser_create()
+--- guard "target must not already exist" (shell.sh op_create) is still the
+--- final authority under the same root process that performs the
+--- touch/mkdir; the plugin-side probe below only short-circuits the obvious
+--- clobber before escalation, mirroring superuser_rename.
+local function superuser_create(value)
 	local name, event = ya.input({
 		title = " SuperUser Create: ",
 		pos = { "hovered", y = 2, w = 40 },
@@ -521,6 +491,19 @@ local function superuser_create()
 
 	-- Input and confirm
 	if event == 1 and not name:is_path() then
+		-- Refuse to clobber an existing entry; touch(1) would succeed
+		-- silently on an existing name and mkdir(1) would fail as root.
+		local target = string.format("%s/%s", value.cwd, name)
+		if fs.cha(Url(target)) then
+			ya.notify({
+				title = " SuperUser C-R-E-A-T-E ",
+				content = string.format("'%s' already exists", name),
+				timeout = 5,
+				level = "error",
+			})
+			return
+		end
+
 		local args
 		if name:ends_with_char("/") then
 			args = { "sh", ya.quote(FS_SCRIPT), "mkdir", "--" }
@@ -600,9 +583,6 @@ local function superuser_remove(value)
 	if permanently then
 		table.insert(args, "--permanent")
 	end
-	if VERBOSE_FLAG ~= "" then
-		table.insert(args, VERBOSE_FLAG)
-	end
 	table.insert(args, "--")
 	extend_iter(args, list_map(selected, ya.quote))
 	execute(with_escalator(args))
@@ -676,9 +656,6 @@ return {
 				state.escalator_tool = tool
 			end
 		end
-		if opts.verbose ~= nil then
-			state.verbose = opts.verbose == true
-		end
 		if type(opts.fs_script) == "string" and opts.fs_script ~= "" then
 			FS_SCRIPT = opts.fs_script
 		end
@@ -710,7 +687,7 @@ return {
 		elseif state.kind == "hardlink" then
 			superuser_hardlink(state.value)
 		elseif state.kind == "create" then
-			superuser_create()
+			superuser_create(state.value)
 		elseif state.kind == "remove" then
 			superuser_remove(state.value)
 		elseif state.kind == "rename" then

@@ -132,8 +132,6 @@ escalator:
 require("superuser"):setup({
     -- options: "sudo" (default), "sudo-rs", "run0", "doas"
     tool = "doas",
-    -- Emit `-v` to cp/mv/ln for verbose output.
-    verbose = false,
 })
 ```
 
@@ -185,11 +183,11 @@ Yazi can't start one. The fix is an opener rule such as:
 [open]
 prepend_rules = [
     { url = "bulk-rename.txt", use = "edit" },
-]   
+]
 
 [opener]
 edit = [
-	{ run = "${EDITOR:-vi} %s", desc = "$EDITOR",      for = "unix", block = true }, 
+	{ run = "${EDITOR:-vi} %s", desc = "$EDITOR", for = "unix", block = true },
 ]
 ```
 
@@ -203,12 +201,6 @@ plugin only triggers it.
 `files/` and `info/` layout plus a `.trashinfo` sidecar for every entry, so
 "Restore" in a trash-aware tool can put things back. `remove --permanently`
 (via `D`) is ` rm -rf ` — no recovery, which is why it asks twice.
-
-## Verbose output
-
-`verbose = true` appends `-v` to `cp`/`mv`/`ln` so the payload prints each
-file it touches. `-v` is a **GNU-coreutils extension** — absent on BSD and
-busybox. Leave it `false` there.
 
 ## License
 
